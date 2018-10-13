@@ -75,21 +75,29 @@
                 this.socketUrl = socketUrl
                 this.userId = userId
                 this.peer = undefined
+                this.candidates = []
                 this.ICE_SERVERS = [{
                     url: 'stun:stun.l.google.com:19302'
-                }];
+                },
+                {
+                        url: 'turn:turn.bistri.com:80',
+                        credential: 'homeo',
+                        username: 'homeo'
+                    }
+                ];
 
                 this.socket = new WebSocket(this.socketUrl);
 
                 this.socket.onmessage = async ({ data }) => {
-                    console.log(data);
                     // Ignore messages from self
                     const message = JSON.parse(data);
-                    if (message.userId === USER_ID) return;
+                    if (message.userId === this.userId) return;
+                    console.log(message);
                     // TODO link users together by checking userIds
                     if (message.type === 'broadcast') await this.sendSdpOffer();
                     if (message.type === 'sdpOffer') await this.handleSdpOffer(message.sdp);
                     if (message.type === 'sdpAnswer') await this.handleSdpAnswer(message.sdp);
+                    if (message.type === 'iceCandidate') await this.handleIceCandidates(message.candidate)
                 }
             }
 
@@ -107,26 +115,31 @@
             }
 
             async sendSdpOffer () {
-                this.peer = new RTCPeerConnection(this.ICE_SERVERS, { optional: [{ RtpDataChannels: true }] });
-                this.peer.onicecandidate = function (event) {
+                this.peer = new RTCPeerConnection({iceServers: this.ICE_SERVERS}, { optional: [{ RtpDataChannels: true }] });
+
+                this.peer.oniceconnectionstatechange = (e) => console.log('qwertyu', e)
+                this.peer.onconnectionstatechange = (e) => console.log('zxcvbn', e)
+
+                this.peer.onicecandidate = (event) => {
+                    console.log('Ice candidate in')
                     if (event.candidate) {
-                        this.peer.addIceCandidate(event.candidate);
+                        return this.socketSend({
+                            userId: this.userId,
+                            candidate: event.candidate,
+                            type: 'iceCandidate'
+                        })
                     }
                 };
-                
+
                 this.channel = this.peer.createDataChannel("chat");
-                this.channel.onopen = function (event) {
-                    console.log('open handle answer')
-                }
-                this.channel.onmessage = function (event) {
-                    console.log(event.data);
-                }
+                this.addEventListenersToChannel()
 
                 this.peer.onmessage = ev => console.log(ev)
 
                 const sdp = await this.peer.createOffer()
 
                 await this.peer.setLocalDescription(sdp);
+
                 return this.socketSend({
                     userId: this.userId,
                     sdp: sdp,
@@ -135,14 +148,24 @@
             }
 
             async handleSdpOffer (sdp) {
-                this.peer = new RTCPeerConnection(this.ICE_SERVERS, { optional: [{ RtpDataChannels: true }] });
+                this.peer = new RTCPeerConnection({ iceServers: this.ICE_SERVERS }, { optional: [{ RtpDataChannels: true }] });
+
+                this.peer.oniceconnectionstatechange = (e) => console.log('qwertyu', e)
+                this.peer.onconnectionstatechange = (e) => console.log('qwertyu', e)
                 this.peer.ondatachannel = (event) => {
                     this.channel = event.channel
+                    this.addEventListenersToChannel()
                 }
 
-                this.peer.onicecandidate = function(event) {
+                // TODO: remove this ?????
+                this.peer.onicecandidate = (event) => {
+                    console.log(event, 'event')
                     if (event.candidate) {
-                        remotePeerConnection.addIceCandidate(event.candidate);
+                        return this.socketSend({
+                            userId: this.userId,
+                            candidate: event.candidate,
+                            type: 'iceCandidate'
+                        })
                     }
                 };
 
@@ -159,14 +182,37 @@
             async handleSdpAnswer (sdp) {
                 await this.peer.setRemoteDescription(sdp)
             }
+
+            async addEventListenersToChannel () {
+                this.channel.onopen = (event) => {
+                    console.log('open handle answer')
+                }
+                this.channel.onmessage = (event) => {
+                    console.log('on message', event.data);
+                }
+            }
+
+            async handleIceCandidates (candidate) {
+                if (this.peer) {
+                    console.log(candidate);
+                    this.peer.addIceCandidate(candidate);
+
+                    for (var i = 0; i < this.candidates.length; i++) {
+                        this.peer.addIceCandidate(this.candidates[i]);
+                    }
+                    this.candidates = [];
+                }
+                else this.candidates.push(candidate);
+            }
         }
 
         WebSocket = PUBNUB.ws;
         // TODO worry about this
         const sub = 'sub-b8f4c07a-352e-11e2-bb9d-c7df1d04ae4a';
         const pub = 'pub-f986077a-73bd-4c28-8e50-2e44076a84e0';
-        const channel = "Shared" // TODO vary this on url hash or something
+        const channel = "jkk" // TODO vary this on url hash or something
         const url = 'wss://pubsub.pubnub.com/' + pub + '/' + sub + '/' + channel
+        console.log(USER_ID)
         const signaller = new Signaller(url, USER_ID);
     </script>
 </body>

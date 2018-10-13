@@ -1,20 +1,3 @@
-Skip to content
-
-Search or jump to…
-
-Pull requests
-Issues
-Marketplace
-Explore
-@aceew Sign out
-592
-6,332 2,656 muaz-khan/WebRTC-Experiment
-Code Issues 428 Pull requests 15 Projects 0 Wiki Insights
-WebRTC-Experiment/websocket/index.html
-201553a on 21 Jan 2017
-@muaz-khan muaz-khan Translator.js, RTCMultiConnection.js, RecordRTC.js, Chrome-Extensions…
-
-445 lines (372 sloc) 17.4 KB
 <!--
 > Muaz Khan     - https://github.com/muaz-khan
 > MIT License   - https://www.webrtc-experiment.com/licence/
@@ -45,11 +28,13 @@ WebRTC-Experiment/websocket/index.html
         audio, video {
                 -moz-transition: all 1s ease;
                 -ms-transition: all 1s ease;
+
                 -o-transition: all 1s ease;
                 -webkit-transition: all 1s ease;
                 transition: all 1s ease;
                 vertical-align: top;
             }
+
             input {
                 border: 1px solid #d9d9d9;
                 border-radius: 1px;
@@ -57,6 +42,7 @@ WebRTC-Experiment/websocket/index.html
                 margin: .2em;
                 width: 30%;
             }
+
             .setup {
                 border-bottom-left-radius: 0;
                 border-top-left-radius: 0;
@@ -66,12 +52,15 @@ WebRTC-Experiment/websocket/index.html
                 margin-top: 8px;
                 position: absolute;
             }
+
             p { padding: 1em; }
+
             li {
                 border-bottom: 1px solid rgb(189, 189, 189);
                 border-left: 1px solid rgb(189, 189, 189);
                 padding: .5em;
             }
+
             .highlight { color: rgb(0, 8, 189); }
         </style>
     <script>
@@ -98,7 +87,7 @@ WebRTC-Experiment/websocket/index.html
                 .
                 <a href="http://twitter.com/WebRTCWeb" target="_blank" title="Twitter profile for WebRTC Experiments">@WebRTCWeb</a>
 
-                <script src="https://cdn.webrtc-experiment.com/view/websocket.js"> </script>.
+                .
                 <a href="https://github.com/muaz-khan?tab=repositories" target="_blank" title="Github Profile">Github</a>
 
                 .
@@ -133,28 +122,38 @@ WebRTC-Experiment/websocket/index.html
             // Muaz Khan     - https://github.com/muaz-khan
             // MIT License   - https://www.webrtc-experiment.com/licence/
             // Documentation - https://github.com/muaz-khan/WebRTC-Experiment/tree/master/websocket
+
             var channel = location.href.replace(/\/|:|#|%|\.|\[|\]/g, '');
-            var pub = 'pub-f986077a-73bd-4c28-8e50-2e44076a84e1';
-            var sub = 'sub-b8f4c07a-352e-11e2-bb9d-c7df1d04ae4b';
+
+            var pub = 'pub-f986077a-73bd-4c28-8e50-2e44076a84e0';
+            var sub = 'sub-b8f4c07a-352e-11e2-bb9d-c7df1d04ae4a';
+
             WebSocket = PUBNUB.ws;
+
             var websocket = new WebSocket('wss://pubsub.pubnub.com/' + pub + '/' + sub + '/' + channel);
+
             websocket.onerror = function () {
                 //location.reload();
             };
+
             websocket.onclose = function () {
                 //location.reload();
             };
-            
+
             websocket.push = websocket.send;
             websocket.send = function (data) {
                 websocket.push(JSON.stringify(data));
             };
+
             var peer = new PeerConnection(websocket);
+            this.peer.onconnectionstatechange = (e) => console.log('zxcvbn', e)
             peer.onUserFound = function (userid) {
                 if (document.getElementById(userid)) return;
                 var tr = document.createElement('tr');
+
                 var td1 = document.createElement('td');
                 var td2 = document.createElement('td');
+
                 td1.innerHTML = userid + ' has camera. Are you interested in video chat?';
 
                 var button = document.createElement('button');
@@ -163,28 +162,33 @@ WebRTC-Experiment/websocket/index.html
                 button.style.float = 'right';
                 button.onclick = function () {
                     button = this;
-                    // TODO another stream
                     getUserMedia(function (stream) {
-                        peer.addStream(Buffer.from('Teststesttest'));
+                        peer.addStream(stream);
                         peer.sendParticipationRequest(button.id);
                     });
                     button.disabled = true;
                 };
                 td2.appendChild(button);
+
                 tr.appendChild(td1);
                 tr.appendChild(td2);
                 roomsList.appendChild(tr);
             };
+
             peer.onStreamAdded = function (e) {
                 if (e.type == 'local') document.querySelector('#start-broadcasting').disabled = false;
                 var video = e.mediaElement;
+
                 video.setAttribute('width', 600);
                 video.setAttribute('controls', true);
+
                 videosContainer.insertBefore(video, videosContainer.firstChild);
+
                 video.play();
                 rotateVideo(video);
                 scaleVideos();
             };
+
             peer.onStreamEnded = function (e) {
                 var video = e.mediaElement;
                 if (video) {
@@ -196,6 +200,7 @@ WebRTC-Experiment/websocket/index.html
                     }, 1000);
                 }
             };
+
             document.querySelector('#start-broadcasting').onclick = function () {
                 this.disabled = true;
                 getUserMedia(function (stream) {
@@ -203,23 +208,29 @@ WebRTC-Experiment/websocket/index.html
                     peer.startBroadcasting();
                 });
             };
+
             document.querySelector('#your-name').onchange = function () {
                 peer.userid = this.value;
             };
+
             var videosContainer = document.getElementById('videos-container') || document.body;
             var btnSetupNewRoom = document.getElementById('setup-new-room');
             var roomsList = document.getElementById('rooms-list');
+
             if (btnSetupNewRoom) btnSetupNewRoom.onclick = setupNewRoomButtonClickHandler;
+
             function rotateVideo(video) {
                 video.style[navigator.mozGetUserMedia ? 'transform' : '-webkit-transform'] = 'rotate(0deg)';
                 setTimeout(function () {
                     video.style[navigator.mozGetUserMedia ? 'transform' : '-webkit-transform'] = 'rotate(360deg)';
                 }, 1000);
             }
+
             function scaleVideos() {
                 var videos = document.querySelectorAll('video'),
                     length = videos.length,
                     video;
+
                 var minus = 130;
                 var windowHeight = 700;
                 var windowWidth = 600;
@@ -228,6 +239,7 @@ WebRTC-Experiment/websocket/index.html
                 var blockAspectRatio;
                 var tempVideoWidth = 0;
                 var maxVideoWidth = 0;
+
                 for (var i = length; i > 0; i--) {
                     blockAspectRatio = i * videoAspectRatio / Math.ceil(length / i);
                     if (blockAspectRatio <= windowAspectRatio) {
@@ -244,7 +256,9 @@ WebRTC-Experiment/websocket/index.html
                         video.width = maxVideoWidth - minus;
                 }
             }
+
             window.onresize = scaleVideos;
+
             // you need to capture getUserMedia yourself!
             function getUserMedia(callback) {
                 var hints = {
@@ -259,14 +273,17 @@ WebRTC-Experiment/websocket/index.html
                     video.src = URL.createObjectURL(stream);
                     video.controls = true;
                     video.muted = true;
+
                     peer.onStreamAdded({
                         mediaElement: video,
                         userid: 'self',
                         stream: stream
                     });
+
                     callback(stream);
                 });
             }
+
             (function () {
                 var uniqueToken = document.getElementById('unique-token');
                 if (uniqueToken)
@@ -346,12 +363,70 @@ answerer.<strong title="Ask other user to establish peer connection with you!">s
             <p>
                 It is upto you to decide when to capture the stream; how to capture; and the quality of the stream.
             </p>
+            <pre>
+function getUserMedia(callback) {
+    var hints = {
+        audio: true,
+        video: {
+            optional: [],
+
+            // capture super-hd stream!
+            mandatory: {
+                minWidth: 1280,
+                minHeight: 720,
+                maxWidth: 1920,
+                maxHeight: 1080,
+                minAspectRatio: 1.77
+            }
+        }
+    };
+
+    navigator.getUserMedia(hints, function (stream) {
+        //    you can use "peer.addStream" to attach stream
+        //    peer.addStream(stream);
+        // or peer.MediaStream = stream;
+
+        callback(stream);
+
+        // preview local video
+        var video = document.createElement('video');
+        video.src = URL.createObjectURL(stream);
+        video.controls = true;
+        video.muted = true;
+
+        peer.onStreamAdded({
+            mediaElement: video,
+            userid: 'self',
+            stream: stream
+        });
+    });
+}
 </pre>
         </section>
 
         <section class="experiment">
             <h2 class="header" id="signaling">Want to use <a href="https://github.com/muaz-khan/WebRTC-Experiment/tree/master/websocket-over-nodejs"
                     target="_blank">WebSocket over Node.js</a>?</h2>
+            <pre>
+var channel = location.href.replace(/\/|:|#|%|\.|\[|\]/g, '');
+var websocket = new WebSocket('wss://www.webrtcweb.com:9449');
+websocket.onopen = function () {
+    websocket.push(JSON.stringify({
+        open: true,
+        channel: channel
+    }));
+};
+websocket.push = websocket.send;
+websocket.send = function (data) {
+    websocket.push(JSON.stringify({
+        data: data,
+        channel: channel
+    }));
+};
+
+// pass "websocket" object over the constructor instead of URL
+var peer = new PeerConnection(websocket);
+</pre>
 
             <p>
                 Check <a href="https://github.com/muaz-khan/WebRTC-Experiment/issues/56#issuecomment-20090650" target="_blank">other

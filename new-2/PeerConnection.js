@@ -13,7 +13,6 @@
         new Signaler(this, socketURL);
 
         this.addStream = function (stream) {
-            console.error(stream)
             this.MediaStream = stream;
         };
     };
@@ -73,9 +72,11 @@
                 peer.addIceCandidate(message.candidate);
                 for (var i = 0; i < candidates.length; i++) {
                     peer.addIceCandidate(candidates[i]);
+                    peer.addIceCandidate({candidate: ''})
                 }
                 candidates = [];
-            } else candidates.push(candidates);
+            } 
+            else candidates.push(candidates);
         };
 
         // it is passed over Offer/Answer objects for reusability
@@ -153,6 +154,8 @@
         };
 
         function onmessage(e) {
+            console.log('WHat')
+            console.log('WS', e);
             var message = JSON.parse(e.data);
 
             if (message.userid == root.userid) return;
@@ -185,7 +188,7 @@
                 } else root.acceptRequest(message.userid);
             }
 
-            // if someone is broadcasting themself!
+            // if someone is broadcasting himself!
             if (message.broadcasting && root.onUserFound) {
                 root.onUserFound(message.userid);
             }
